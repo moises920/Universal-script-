@@ -15,12 +15,8 @@ Button.BackgroundTransparency = 0.2
 Button.BorderSizePixel = 0
 Button.AutoButtonColor = true
 
-Button.MouseEnter:Connect(function()
-    Button.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-end)
-Button.MouseLeave:Connect(function()
-    Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-end)
+Button.MouseEnter:Connect(function() Button.BackgroundColor3 = Color3.fromRGB(70, 70, 70) end)
+Button.MouseLeave:Connect(function() Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40) end)
 
 -- função principal que carrega todo o hub
 local function LoadHub()
@@ -28,7 +24,7 @@ local function LoadHub()
     local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
     local Window = Fluent:CreateWindow({
-        Title = "caveira hub" .. tostring(Fluent.Version),
+        Title = "Caveira Hub " .. tostring(Fluent.Version),
         TabWidth = 160, 
         Size = UDim2.fromOffset(580, 460), 
         Theme = "Dark"
@@ -36,12 +32,16 @@ local function LoadHub()
 
     local Tabs = {
         Main = Window:AddTab({ Title = "Main" }),
-        Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+        Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
+        Extras = Window:AddTab({ Title = "Extras" }),
+        Farm = Window:AddTab({ Title = "Farm" }),
+        Visual = Window:AddTab({ Title = "Visual" })
     }
 
     local UIS = game:GetService("UserInputService")
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
+    local HttpService = game:GetService("HttpService")
 
     -- hotkey RightShift para abrir/fechar
     UIS.InputBegan:Connect(function(input, gp)
@@ -50,8 +50,8 @@ local function LoadHub()
         end
     end)
 
-    -- parágrafo
-    Tabs.Main:AddParagraph({ Title = "caveira hub script", Content = "script novo do caveira " })
+    -- Main Tab
+    Tabs.Main:AddParagraph({ Title = "Caveira Hub Script", Content = "Script novo do Caveira" })
 
     -- Infinite Jump
     Tabs.Main:AddButton({
@@ -78,15 +78,14 @@ local function LoadHub()
         Callback = function(state)
             if state then
                 Fluent:Notify({ Title = "AutoFarm ligado", Content = "Ativo" })
-                -- aqui entra seu código de autofarm
+                -- código de AutoFarm vai aqui
             else
                 Fluent:Notify({ Title = "AutoFarm desligado", Content = "Desativado" })
             end
         end
     })
 
-    -- Sliders
-    -- JumpPower
+    -- JumpPower Slider
     local JumpSlider = Tabs.Main:AddSlider("pulo", {
         Title = "Ajustar Pulo",
         Description = "Muda a altura do pulo",
@@ -105,7 +104,7 @@ local function LoadHub()
         print("JumpPower mudou para:", Value)
     end)
 
-    -- WalkSpeed
+    -- WalkSpeed Slider
     local WalkSlider = Tabs.Main:AddSlider("velocidade", {
         Title = "Ajustar Velocidade",
         Description = "Muda a velocidade do jogador",
@@ -153,11 +152,11 @@ local function LoadHub()
         end
     })
 
-    -- Fly toggle
+    -- Fly Mode (Extras Tab)
     local flying = false
     local flyConnection
-    Tabs.Main:AddToggle("fly", {
-        Title = "Fly",
+    Tabs.Extras:AddToggle("fly", {
+        Title = "Fly Mode",
         Description = "Permite voar livremente",
         Default = false,
         Callback = function(state)
@@ -193,12 +192,111 @@ local function LoadHub()
             end
         end
     })
+
+    -- Auto Buy/Store (Farm Tab)
+    Tabs.Farm:AddToggle("autobuy", {
+        Title = "Auto Buy/Store",
+        Description = "Compra automaticamente itens/lojas",
+        Default = false,
+        Callback = function(state)
+            if state then
+                Fluent:Notify({ Title = "Auto Buy", Content = "Ativado" })
+                -- código de Auto Buy/Store vai aqui
+            else
+                Fluent:Notify({ Title = "Auto Buy", Content = "Desativado" })
+            end
+        end
+    })
+
+    -- ESP de players/NPCs (Visual Tab)
+    Tabs.Visual:AddToggle("esp", {
+        Title = "ESP Players/NPCs",
+        Description = "Mostra jogadores e NPCs",
+        Default = false,
+        Callback = function(state)
+            local Run = RunService.RenderStepped
+            local function CreateESP(model)
+                if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Adornee = model
+                    highlight.FillColor = Color3.new(1,0,0)
+                    highlight.OutlineColor = Color3.new(1,1,1)
+                    highlight.Parent = model
+                end
+            end
+            if state then
+                for _, plr in pairs(Players:GetPlayers()) do
+                    if plr ~= Players.LocalPlayer then
+                        CreateESP(plr.Character or plr.CharacterAdded:Wait())
+                    end
+                end
+                for _, npc in pairs(workspace:GetChildren()) do
+                    if npc:IsA("Model") and npc:FindFirstChild("Humanoid") then
+                        CreateESP(npc)
+                    end
+                end
+            else
+                for _, v in pairs(workspace:GetDescendants()) do
+                    if v:IsA("Highlight") then
+                        v:Destroy()
+                    end
+                end
+            end
+        end
+    })
+
+    -- Server Hop (Settings Tab)
+    Tabs.Settings:AddButton({
+        Title = "Server Hop",
+        Callback = function()
+            local HttpService = game:GetService("HttpService")
+            local PlaceID = game.PlaceId
+            local Servers = {}
+            local success, data = pcall(function()
+                return game:HttpGet("https://games.roblox.com/v1/games/"..PlaceID.."/servers/Public?sortOrder=Asc&limit=100")
+            end)
+            if success then
+                local decoded = HttpService:JSONDecode(data)
+                for _, s in pairs(decoded.data) do
+                    if s.id ~= game.JobId and s.playing < s.maxPlayers then
+                        table.insert(Servers, s.id)
+                    end
+                end
+            end
+            if #Servers > 0 then
+                local RandomServer = Servers[math.random(1,#Servers)]
+                game:GetService("TeleportService"):TeleportToPlaceInstance(PlaceID, RandomServer, Players.LocalPlayer)
+            else
+                Fluent:Notify({ Title = "Server Hop", Content = "Nenhum servidor disponível!" })
+            end
+        end
+    })
+
+    -- Anti-Stun (Settings Tab)
+    Tabs.Settings:AddToggle("antistun", {
+        Title = "Anti-Stun",
+        Description = "Previne stun",
+        Default = true,
+        Callback = function(state)
+            local char = Players.LocalPlayer.Character
+            if state then
+                if char then
+                    local humanoid = char:FindFirstChildOfClass("Humanoid")
+                    if humanoid then
+                        humanoid.StateChanged:Connect(function(_, newState)
+                            if newState == Enum.HumanoidStateType.Seated or newState == Enum.HumanoidStateType.FallingDown then
+                                humanoid:ChangeState(Enum.HumanoidStateType.Running)
+                            end
+                        end)
+                    end
+                end
+            end
+        end
+    })
 end
 
 -- botão flutuante recarrega o hub
-Button.MouseButton1Click:Connect(function()
-    LoadHub()
-end)
+Button.MouseButton1Click:Connect(function() LoadHub() end)
 
 -- carrega o hub pela primeira vez
 LoadHub()
