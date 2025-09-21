@@ -35,7 +35,11 @@ local function LoadHub()
         Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
         Extras = Window:AddTab({ Title = "Extras" }),
         Farm = Window:AddTab({ Title = "Farm" }),
-        Visual = Window:AddTab({ Title = "Visual" })
+        Visual = Window:AddTab({ Title = "Visual" }),
+        Player = Window:AddTab({Title = "Player"}),
+        Combat = Window:AddTab({Title="Combat"}),
+        Fun = Window:AddTab({Title="Fun"}),
+        Utility = Window:AddTab({Title="Utility"})
     }
 
     local UIS = game:GetService("UserInputService")
@@ -67,21 +71,6 @@ local function LoadHub()
                 end
             end)
             Fluent:Notify({ Title = "Infinite Jump", Content = "Ativado com sucesso!" })
-        end
-    })
-
-    -- AutoFarm toggle
-    Tabs.Main:AddToggle("autoFarm", {
-        Title = "AutoFarm",
-        Description = "Ele vai farmar level",
-        Default = false,
-        Callback = function(state)
-            if state then
-                Fluent:Notify({ Title = "AutoFarm ligado", Content = "Ativo" })
-                -- código de AutoFarm vai aqui
-            else
-                Fluent:Notify({ Title = "AutoFarm desligado", Content = "Desativado" })
-            end
         end
     })
 
@@ -214,7 +203,6 @@ local function LoadHub()
         Description = "Mostra jogadores e NPCs",
         Default = false,
         Callback = function(state)
-            local Run = RunService.RenderStepped
             local function CreateESP(model)
                 if model:IsA("Model") and model:FindFirstChild("HumanoidRootPart") then
                     local highlight = Instance.new("Highlight")
@@ -249,7 +237,6 @@ local function LoadHub()
     Tabs.Settings:AddButton({
         Title = "Server Hop",
         Callback = function()
-            local HttpService = game:GetService("HttpService")
             local PlaceID = game.PlaceId
             local Servers = {}
             local success, data = pcall(function()
@@ -279,20 +266,165 @@ local function LoadHub()
         Default = true,
         Callback = function(state)
             local char = Players.LocalPlayer.Character
-            if state then
-                if char then
-                    local humanoid = char:FindFirstChildOfClass("Humanoid")
-                    if humanoid then
-                        humanoid.StateChanged:Connect(function(_, newState)
-                            if newState == Enum.HumanoidStateType.Seated or newState == Enum.HumanoidStateType.FallingDown then
-                                humanoid:ChangeState(Enum.HumanoidStateType.Running)
-                            end
-                        end)
-                    end
+            if state and char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.StateChanged:Connect(function(_, newState)
+                        if newState == Enum.HumanoidStateType.Seated or newState == Enum.HumanoidStateType.FallingDown then
+                            humanoid:ChangeState(Enum.HumanoidStateType.Running)
+                        end
+                    end)
                 end
             end
         end
     })
+
+    -- ==============================
+    -- Player Tab
+    -- ==============================
+    Tabs.Player:AddDropdown("teleportTo", {
+        Title = "Teleport To Player",
+        Description = "Teleporta até outro jogador",
+        Options = function()
+            local list = {}
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= Players.LocalPlayer then
+                    table.insert(list, plr.Name)
+                end
+            end
+            return list
+        end,
+        Callback = function(selected)
+            local target = Players:FindFirstChild(selected)
+            if target and target.Character and Players.LocalPlayer.Character then
+                Players.LocalPlayer.Character:MoveTo(target.Character.HumanoidRootPart.Position)
+                Fluent:Notify({Title="Teleport", Content="Teleported to "..selected})
+            end
+        end
+    })
+
+    Tabs.Player:AddToggle("invisible", {
+        Title = "Invisibility",
+        Description = "Fica invisível",
+        Default = false,
+        Callback = function(state)
+            local char = Players.LocalPlayer.Character
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.Transparency = state and 1 or 0
+                        part.CanCollide = not state
+                    end
+                end
+            end
+            Fluent:Notify({Title="Invisibility", Content=state and "Ativado" or "Desativado"})
+        end
+    })
+
+    Tabs.Player:AddButton({Title="Reset Player", Callback=function()
+        if Players.LocalPlayer.Character then
+            Players.LocalPlayer.Character:BreakJoints()
+        end
+    end})
+
+    -- ==============================
+    -- Combat Tab
+    -- ==============================
+    Tabs.Combat:AddButton({Title="Super Punch", Callback=function()
+        local char = Players.LocalPlayer.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            char:FindFirstChildOfClass("Humanoid").Damage = 100
+            Fluent:Notify({Title="Combat", Content="Super Punch Ativado!"})
+        end
+    end})
+
+    local killAura = false
+    Tabs.Combat:AddToggle("killAura", {
+        Title="Kill Aura",
+        Description="Ataca NPCs próximos",
+        Default=false,
+        Callback=function(state)
+            killAura = state
+            Fluent:Notify({Title="Kill Aura", Content=state and "Ativado" or "Desativado"})
+        end
+    })
+
+    RunService.RenderStepped:Connect(function()
+        if killAura then
+            local char = Players.LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                for _, npc in pairs(workspace:GetChildren()) do
+                    if npc:IsA("Model") and npc:FindFirstChild("Humanoid") and npc:FindFirstChild("HumanoidRootPart") then
+                        local dist = (char.HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
+                        if dist < 10 then
+                            npc.Humanoid.Health = 0
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    -- ==============================
+    -- Fun Tab
+    -- ==============================
+    Tabs.Fun:AddToggle("bigHead", {
+        Title="Big Head",
+        Description="Cabeças gigantes",
+        Default=false,
+        Callback=function(state)
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr.Character and plr.Character:FindFirstChild("Head") then
+                    plr.Character.Head.Mesh.Scale = state and Vector3.new(5,5,5) or Vector3.new(1,1,1)
+                end
+            end
+        end
+    })
+
+    Tabs.Fun:AddToggle("lowGravity", {
+        Title="Low Gravity",
+        Description="Pula mais alto e cai devagar",
+        Default=false,
+        Callback=function(state)
+            workspace.Gravity = state and 50 or 196.2
+        end
+    })
+
+    Tabs.Fun:AddButton({Title="Fire Feet", Callback=function()
+        local char = Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local fire = Instance.new("Fire", char.HumanoidRootPart)
+            fire.Heat = 10
+            fire.Size = 5
+            Fluent:Notify({Title="Fun", Content="Fogo nos pés ativado!"})
+        end
+    end})
+
+    -- ==============================
+    -- Utility Tab
+    -- ==============================
+    Tabs.Utility:AddButton({Title="Anti AFK", Callback=function()
+        local vu = game:GetService("VirtualUser")
+        Players.LocalPlayer.Idled:Connect(function()
+            vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+            wait(1)
+            vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+        end)
+        Fluent:Notify({Title="Utility", Content="Anti AFK ativado!"})
+    end})
+
+    Tabs.Utility:AddButton({Title="Rejoin", Callback=function()
+        local ts = game:GetService("TeleportService")
+        ts:Teleport(game.PlaceId, Players.LocalPlayer)
+    end})
+
+    Tabs.Utility:AddButton({Title="Clear ESP", Callback=function()
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("Highlight") then v:Destroy() end
+        end
+        Fluent:Notify({Title="Utility", Content="ESP removido!"})
+    end})
+
 end
 
 -- botão flutuante recarrega o hub
