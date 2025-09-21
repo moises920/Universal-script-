@@ -54,7 +54,9 @@ local function LoadHub()
         end
     end)
 
+    -- ==============================
     -- Main Tab
+    -- ==============================
     Tabs.Main:AddParagraph({ Title = "Caveira Hub Script", Content = "Script novo do Caveira" })
 
     -- Infinite Jump
@@ -141,7 +143,9 @@ local function LoadHub()
         end
     })
 
-    -- Fly Mode (Extras Tab)
+    -- ==============================
+    -- Extras Tab
+    -- ==============================
     local flying = false
     local flyConnection
     Tabs.Extras:AddToggle("fly", {
@@ -182,7 +186,9 @@ local function LoadHub()
         end
     })
 
-    -- Auto Buy/Store (Farm Tab)
+    -- ==============================
+    -- Farm Tab
+    -- ==============================
     Tabs.Farm:AddToggle("autobuy", {
         Title = "Auto Buy/Store",
         Description = "Compra automaticamente itens/lojas",
@@ -197,7 +203,9 @@ local function LoadHub()
         end
     })
 
-    -- ESP de players/NPCs (Visual Tab)
+    -- ==============================
+    -- Visual Tab
+    -- ==============================
     Tabs.Visual:AddToggle("esp", {
         Title = "ESP Players/NPCs",
         Description = "Mostra jogadores e NPCs",
@@ -233,7 +241,9 @@ local function LoadHub()
         end
     })
 
-    -- Server Hop (Settings Tab)
+    -- ==============================
+    -- Settings Tab
+    -- ==============================
     Tabs.Settings:AddButton({
         Title = "Server Hop",
         Callback = function()
@@ -259,7 +269,6 @@ local function LoadHub()
         end
     })
 
-    -- Anti-Stun (Settings Tab)
     Tabs.Settings:AddToggle("antistun", {
         Title = "Anti-Stun",
         Description = "Previne stun",
@@ -328,7 +337,7 @@ local function LoadHub()
     end})
 
     -- ==============================
-    -- Combat Tab
+    -- Combat Tab (com novas funções)
     -- ==============================
     Tabs.Combat:AddButton({Title="Super Punch", Callback=function()
         local char = Players.LocalPlayer.Character
@@ -349,16 +358,85 @@ local function LoadHub()
         end
     })
 
+    local superFastAttack = false
+    Tabs.Combat:AddToggle("superFastAttack", {
+        Title="Super Fast Attack",
+        Description="Ataca muito rápido",
+        Default=false,
+        Callback=function(state)
+            superFastAttack = state
+            Fluent:Notify({Title="Super Fast Attack", Content=state and "Ativado" or "Desativado"})
+        end
+    })
+
+    local autoAttack = false
+    Tabs.Combat:AddToggle("autoAttack", {
+        Title="Auto Attack",
+        Description="Ataca NPCs automaticamente",
+        Default=false,
+        Callback=function(state)
+            autoAttack = state
+            Fluent:Notify({Title="Auto Attack", Content=state and "Ativado" or "Desativado"})
+        end
+    })
+
+    local autoShoot = false
+    Tabs.Combat:AddToggle("autoShoot", {
+        Title="Auto Shoot",
+        Description="Atira automaticamente",
+        Default=false,
+        Callback=function(state)
+            autoShoot = state
+            Fluent:Notify({Title="Auto Shoot", Content=state and "Ativado" or "Desativado"})
+        end
+    })
+
     RunService.RenderStepped:Connect(function()
-        if killAura then
-            local char = Players.LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
+        local char = Players.LocalPlayer.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            -- Kill Aura
+            if killAura then
                 for _, npc in pairs(workspace:GetChildren()) do
                     if npc:IsA("Model") and npc:FindFirstChild("Humanoid") and npc:FindFirstChild("HumanoidRootPart") then
                         local dist = (char.HumanoidRootPart.Position - npc.HumanoidRootPart.Position).Magnitude
                         if dist < 10 then
                             npc.Humanoid.Health = 0
                         end
+                    end
+                end
+            end
+
+            -- Super Fast Attack
+            if superFastAttack then
+                for _, npc in pairs(workspace:GetChildren()) do
+                    if npc:IsA("Model") and npc:FindFirstChild("Humanoid") then
+                        npc.Humanoid.Health = 0
+                    end
+                end
+            end
+
+            -- Auto Attack
+            if autoAttack then
+                for _, npc in pairs(workspace:GetChildren()) do
+                    if npc:IsA("Model") and npc:FindFirstChild("Humanoid") then
+                        npc.Humanoid.Health = 0
+                    end
+                end
+            end
+
+            -- Auto Shoot
+            if autoShoot then
+                for _, npc in pairs(workspace:GetChildren()) do
+                    if npc:IsA("Model") and npc:FindFirstChild("HumanoidRootPart") then
+                        local part = Instance.new("Part")
+                        part.Size = Vector3.new(0.2,0.2,0.2)
+                        part.Position = char.HumanoidRootPart.Position
+                        part.Anchored = true
+                        part.CanCollide = false
+                        part.Parent = workspace
+                        part.CFrame = CFrame.new(char.HumanoidRootPart.Position, npc.HumanoidRootPart.Position)
+                        npc.Humanoid.Health = npc.Humanoid.Health - 10
+                        game:GetService("Debris"):AddItem(part, 0.1)
                     end
                 end
             end
@@ -413,22 +491,4 @@ local function LoadHub()
         Fluent:Notify({Title="Utility", Content="Anti AFK ativado!"})
     end})
 
-    Tabs.Utility:AddButton({Title="Rejoin", Callback=function()
-        local ts = game:GetService("TeleportService")
-        ts:Teleport(game.PlaceId, Players.LocalPlayer)
-    end})
-
-    Tabs.Utility:AddButton({Title="Clear ESP", Callback=function()
-        for _, v in pairs(workspace:GetDescendants()) do
-            if v:IsA("Highlight") then v:Destroy() end
-        end
-        Fluent:Notify({Title="Utility", Content="ESP removido!"})
-    end})
-
-end
-
--- botão flutuante recarrega o hub
-Button.MouseButton1Click:Connect(function() LoadHub() end)
-
--- carrega o hub pela primeira vez
-LoadHub()
+    Tabs.Utility:Add
