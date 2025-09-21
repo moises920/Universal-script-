@@ -490,5 +490,3 @@ local function LoadHub()
         end)
         Fluent:Notify({Title="Utility", Content="Anti AFK ativado!"})
     end})
-
-    Tabs.Utility:Add
