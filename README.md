@@ -54,8 +54,149 @@ local function LoadHub()
         end
     end)
 
-    -- Main Tab
-    Tabs.Main:AddParagraph({ Title = "Caveira Hub Script", Content = "Script novo do Caveira" })
+    -- ==============================
+    -- Combat Tab extra
+    -- ==============================
+    local aimbotEnabled = false
+    Tabs.Combat:AddToggle("aimbot", {
+        Title="Aimbot",
+        Description="Travando a mira no player mais próximo",
+        Default=false,
+        Callback=function(state)
+            aimbotEnabled = state
+            Fluent:Notify({Title="Combat", Content=state and "Aimbot Ativado!" or "Aimbot Desativado!"})
+        end
+    })
+
+    RunService.RenderStepped:Connect(function()
+        if aimbotEnabled then
+            local cam = workspace.CurrentCamera
+            local closest, dist = nil, math.huge
+            for _,plr in pairs(Players:GetPlayers()) do
+                if plr ~= Players.LocalPlayer and plr.Character and plr.Character:FindFirstChild("Head") then
+                    local pos, vis = cam:WorldToViewportPoint(plr.Character.Head.Position)
+                    if vis then
+                        local mag = (Vector2.new(pos.X,pos.Y) - UIS:GetMouseLocation()).Magnitude
+                        if mag < dist then
+                            closest, dist = plr, mag
+                        end
+                    end
+                end
+            end
+            if closest and closest.Character and closest.Character:FindFirstChild("Head") then
+                cam.CFrame = CFrame.new(cam.CFrame.Position, closest.Character.Head.Position)
+            end
+        end
+    end)
+
+    local autoClick = false
+    Tabs.Combat:AddToggle("autoclick", {
+        Title="Auto Click",
+        Description="Clica sozinho muito rápido",
+        Default=false,
+        Callback=function(state)
+            autoClick = state
+            Fluent:Notify({Title="Combat", Content=state and "AutoClick Ativado!" or "AutoClick Desativado!"})
+        end
+    })
+    task.spawn(function()
+        local vu = game:GetService("VirtualUser")
+        while task.wait(0.1) do
+            if autoClick then
+                pcall(function()
+                    vu:Button1Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+                    task.wait()
+                    vu:Button1Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+                end)
+            end
+        end
+    end)
+
+    -- ==============================
+    -- Fun Tab extra
+    -- ==============================
+    local rainbow = false
+    Tabs.Fun:AddToggle("rainbow", {
+        Title="Rainbow Character",
+        Description="Personagem troca de cor sem parar",
+        Default=false,
+        Callback=function(state)
+            rainbow = state
+            Fluent:Notify({Title="Fun", Content=state and "Rainbow ON" or "Rainbow OFF"})
+        end
+    })
+
+    task.spawn(function()
+        while task.wait(0.2) do
+            if rainbow then
+                local char = Players.LocalPlayer.Character
+                if char then
+                    for _,part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.Color = Color3.fromHSV(tick()%5/5,1,1)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    local spinning = false
+    Tabs.Fun:AddToggle("spin", {
+        Title="Spin Character",
+        Description="Faz o player girar sem parar",
+        Default=false,
+        Callback=function(state)
+            spinning = state
+            Fluent:Notify({Title="Fun", Content=state and "Spin Ativado!" or "Spin Desativado!"})
+        end
+    })
+
+    RunService.RenderStepped:Connect(function()
+        if spinning and Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = Players.LocalPlayer.Character.HumanoidRootPart
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(10),0)
+        end
+    end)
+
+    -- ==============================
+    -- Utility Tab extra
+    -- ==============================
+    Tabs.Utility:AddButton({Title="Save Config", Callback=function()
+        local humanoid = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            local cfg = {WalkSpeed=humanoid.WalkSpeed, JumpPower=humanoid.JumpPower}
+            writefile("caveira_config.json", HttpService:JSONEncode(cfg))
+            Fluent:Notify({Title="Config", Content="Config salva!"})
+        end
+    end})
+
+    Tabs.Utility:AddButton({Title="Load Config", Callback=function()
+        if isfile("caveira_config.json") then
+            local data = HttpService:JSONDecode(readfile("caveira_config.json"))
+            local humanoid = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.WalkSpeed = data.WalkSpeed or 16
+                humanoid.JumpPower = data.JumpPower or 50
+            end
+            Fluent:Notify({Title="Config", Content="Config carregada!"})
+        else
+            Fluent:Notify({Title="Config", Content="Nenhum arquivo salvo!"})
+        end
+    end})
+
+    Tabs.Utility:AddSlider("fovslider", {
+        Title="FOV Changer",
+        Description="Ajusta o campo de visão da câmera",
+        Default=70,
+        Min=40,
+        Max=120,
+        Callback=function(val)
+            workspace.CurrentCamera.FieldOfView = val
+        end
+    })
+end
+
 
     -- Infinite Jump
     Tabs.Main:AddButton({
@@ -382,6 +523,7 @@ local function LoadHub()
     })
 
     Tabs.Fun:AddToggle("lowGravity", {
+        Title="Low Gravity",{
         Title="Low Gravity",
         Description="Pula mais alto e cai devagar",
         Default=false,
@@ -432,3 +574,4 @@ Button.MouseButton1Click:Connect(function() LoadHub() end)
 
 -- carrega o hub pela primeira vez
 LoadHub()
+   
