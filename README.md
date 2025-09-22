@@ -31,7 +31,7 @@ local function LoadHub()
     })
 
     local Tabs = {
-        Main = Window:AddTab({ Title = "Main" }), Icon = "Main" }),
+        Main = Window:AddTab({ Title = "Main" }),
         Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
         Extras = Window:AddTab({ Title = "Extras" }),
         Farm = Window:AddTab({ Title = "Farm" }),
