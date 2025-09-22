@@ -80,7 +80,7 @@ local function LoadHub()
     local JumpSlider = Tabs.Main:AddSlider("pulo", {
         Title = "Ajustar Pulo",
         Description = "Muda a altura do pulo",
-        Default = 50,
+        Default = 51,
         Min = 0,
         Max = 200,
         Rounding = 0,
